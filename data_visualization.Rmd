@@ -1,0 +1,953 @@
+---
+title: "Data Visualization A practical introduction - Kieran Healy "
+output: html_notebook
+author: Leting Zhang
+date: 2021.02.06
+---
+
+# Setting
+```{r Import, eval=FALSE, include=FALSE}
+
+my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
+                 "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
+                 "here", "interplot", "margins", "maps", "mapproj",
+                 "mapdata", "MASS", "quantreg", "rlang", "scales",
+                 "survey", "srvyr", "viridis", "viridisLite", "devtools")
+
+install.packages(my_packages, repos = "http://cran.rstudio.com")
+
+```
+```{r}
+library(gapminder)
+library(ggplot2)
+library(socviz)
+library(tidyverse)
+
+```
+```{r}
+gapminder
+```
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+
+p + geom_point()
+p + geom_smooth()
+```
+
+# Scale_x_log10
+
+```{r}
+
+p + geom_point() + geom_smooth(method = "lm") 
+
+
+# In the last plot, the data is quite bunched up against the left side. X is not normally distributed across the country years. So it probably look better if it were transformed from a linear scale to a log scale. Use a function "scale_x_log10()"
+
+p + geom_point() +
+    geom_smooth(method = "gam") +
+    scale_x_log10()
+
+
+p + geom_point() +
+    geom_smooth(method = "gam") +
+    scale_x_log10(labels = scales::dollar)
+```
+
+## Mapping aesthetics vs setting them ***
+```{r }
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp,
+                            color = continent))
+
+p+geom_point()
+
+
+### The aes() function is for mapping only. DO NOT USE IT TO CHANGE PROPERTIES TO A PARTICULAR VALUE (e.g., color, shape etc.)  In this example, the color "purple" is not representing or mapping a variable or feature of the data in the releveant way.
+ 
+
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp,
+                            color = "purple"))
+p+geom_point()
+
+
+
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp
+                           ) )
+p+geom_point(color = "purple") +
+  geom_smooth(method = "loess") + 
+  scale_x_log10()
+
+
+
+
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp))
+p + geom_point(alpha = 0.5, color = "gray") + # alpha controls how transparent the object will appear when drawn, it's measured on a scale of zero to one 
+  geom_smooth(color = "orange", se = FALSE, size = 3, method = "lm") +
+  scale_x_log10()
+```
+```{r , fig.width = 12, fig.height = 9}
+
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp))
+
+p + geom_point(alpha = 0.3) +
+  geom_smooth(method = "gam") +
+  scale_x_log10(labels = scales::dollar) +
+  labs(x = "GDP Per Capita", y = "Life Expectation in Years", 
+       title = "Economic Growth and Life Expetancy", 
+       subtitle = "Data Points and country-years",
+       caption = "Source: Gapminder")
+
+
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp,
+                           color = continent))
+
+p + geom_point(alpha = 0.3) +
+  geom_smooth(method = "gam") +
+  scale_x_log10(labels = scales::dollar) +
+  labs(x = "GDP Per Capita", y = "Life Expectation in Years", 
+       title = "Economic Growth and Life Expetancy", 
+       subtitle = "Data Points and country-years",
+       caption = "Source: Gapminder")
+
+
+# discrect/categorical color
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp))
+
+p + geom_point(mapping = aes(color = continent)) +
+  geom_smooth(method = "loess") +
+  scale_x_log10(labels = scales::dollar)
+
+
+# continuours color
+p <-  ggplot(data = gapminder,
+             mapping = aes(x = gdpPercap,
+                            y = lifeExp))
+p + geom_point(mapping = aes(color = log(pop))) +
+    scale_x_log10()   
+
+ggsave(filename = "my_figure.png")
+```
+
+# 4. Show the right numbers
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year,
+                          y = gdpPercap))
+p + geom_line(aes(group=country)) 
+
+
+
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year,
+                          y = gdpPercap))
+p + geom_line(aes(group = country)) + facet_wrap(~ continent)
+
+
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year, y = gdpPercap))
+
+p + geom_line(color = "gray70", aes(group = country)) +
+  geom_smooth(size = 1.1, method = "loess", se = FALSE) +
+  scale_y_log10(labels = scales::dollar)+
+  facet_wrap(~ continent, ncol = 5) + 
+  labs(x = "Year",
+       y = "GDP percapita", 
+       title = "GDP per capita on Five Continents")
+
+```
+
+## Facet to make small multiples 
+
+```{r}
+data(gss_sm)
+
+p <- ggplot(data = gss_sm, mapping = aes(x = age, y = childs))
+p + geom_point(alpha = 0.2) +
+  geom_smooth()+
+  facet_grid(sex~race)
+
+
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion, color = religion))
+p + geom_bar()
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion, fill = religion))
+p + geom_bar() + guides(fill = FALSE) 
+
+```
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar()
+
+
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+
+p + geom_bar(position = "fill")
+```
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge",
+             mapping = aes(y = ..prop..)) ### Proportion plot
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion))
+
+p + geom_bar(position = "dodge", 
+             mapping =  aes(y = ..prop.., group = bigregion)) +
+  facet_wrap(~bigregion, ncol = 1)
+
+```
+
+## Histograms and density plots
+
+```{r}
+p <- ggplot(data = midwest,
+            mapping = aes(x = area))
+p + geom_histogram()
+
+
+p <- ggplot(data = midwest,
+            mapping = aes(x = area))
+p + geom_histogram(bins = 10)
+
+oh_wi <- c("OH", "WI")
+
+p <- ggplot(data= subset(midwest, subset = state %in% oh_wi),
+            mapping = aes (x = percollege, fill = state))
+
+
+p + geom_histogram(alpha = 0.4, bins = 20)
+
+
+# cContinuous variable - use kernel density estimate
+
+p <- ggplot(data = midwest, aes(x = area))
+p + geom_density()
+
+
+p <- ggplot(midwest,
+            mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3)
+
+p <- ggplot(subset(midwest, subset = state %in% oh_wi), 
+            mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3, mapping = (aes(y = ..scaled..)))
+
+
+```
+```{r}
+
+```
+
+## Avoid transformations when necesary [stat = "identity" | geom_col  ]
+```{r}
+# stat = "identity" means "don't do any summary calculations"
+
+p <- ggplot(data = titanic,
+            mapping = aes(x = fate, y = percent, fill = sex))
+p + geom_bar(position = "dodge", stat = "identity") + theme (legend.position = "top")
+
+p + geom_col(position = "dodge") + theme (legend.position = "top")
+
+
+g <- ggplot(data = oecd_sum,
+            mapping = aes(x = year, y = diff, fill = hi_lo))
+
+g + geom_col() + guides(fill = FALSE) + 
+  labs(x = NULL, y = "Difference in Years", title = " The US Life Expectancy Gap",
+       subtitle = "Difference between US and OECD average life expecancies, 1960-2015",
+        caption = "Data: OECD. After a chart by ... ")
+```
+
+# 5. Graph tables, add labels, make notes
+# - how to transform data before we send it to ggplot; use tidyverse.
+# - expand the number of geoms we know about, and learn more about how to choose between them/
+# - learn about the scale, guide, and theme functions.
+
+
+## Use pipes to summarize data
+```{r}
+
+rel_by_region <- gss_sm %>% 
+  group_by ( bigregion, religion) %>% 
+  summarize (N = n()) %>% 
+  mutate(freq = N/sum(N),
+         pct = round((freq*100),0))
+
+
+
+
+```
+
+```{r}
+p <- ggplot(rel_by_region, aes(x = bigregion, y = pct, fill = religion))
+p + geom_col(position = "dodge2")+
+  labs(x = "Region", y = "Percent", fill = "Religion") +
+  theme(legend.position = "top")
+
+p <- ggplot(rel_by_region, aes(x = religion, y = pct, fill = religion))
+p + geom_col(positio = "dodge2") +
+  labs(x = NULL, y = "Percent", fill = "Religion") +
+  guides(fill = FALSE) +
+  coord_flip() +
+  facet_grid(~ bigregion)
+
+
+```
+
+## Continuous variables by group or category 
+### Putting categorical variables on the y-axis to compare their distributions is a very usful trick
+```{r}
+organdata %>% select(1:6) %>%  sample_n(size = 10)
+
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = year, y = donors))
+p + geom_point()
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = year, y = donors))
+p + geom_line(aes(group = country)) + facet_wrap( ~ country)
+
+p <- ggplot(data = organdata, 
+            mapping = aes(x = country, y = donors))
+p + geom_boxplot() ## The labels on the x-axis will over lap 
+
+p + geom_boxplot() + coord_flip() 
+
+# order  - "reorder()"
+# In R, the default mean function will fail with an error if there are missing values in the variable.
+
+
+p <- ggplot(data = organdata, mapping = aes(x = reorder(country, donors, na.rm = TRUE),
+                                            y = donors))
+
+
+p + geom_boxplot()+
+  labs(x = NULL) + coord_flip()
+
+
+p + geom_violin() +
+  labs(x = NULL) + coord_flip()
+
+
+
+p <- ggplot(data = organdata, 
+            mapping = aes(x = reorder(country, donors, na.rm = TRUE),
+                          y = donors, fill = world))
+p + geom_boxplot() + labs(x =NULL) +
+  coord_flip() + theme(legend.position = "top")
+```
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes ( x = reorder( country, donors, na.rm = TRUE ),
+                            y = donors, color = world))
+p + geom_point() + labs(x = NULL) +
+  coord_flip() + theme(legend.position = "top")
+
+# There is some overplotting of observations. It can be useful to perturbn the data a little bit.
+# (use "jitter")
+p <- ggplot(data = organdata,
+            mapping = aes ( x = reorder( country, donors, na.rm = TRUE ),
+                            y = donors, color = world))
+
+p + geom_jitter() + labs(x = NULL) + 
+  coord_flip() + theme(legend.position = "top")
+
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, color = world))
+p + geom_jitter(position = position_jitter(width=0.15)) +
+    labs(x=NULL) + coord_flip() + theme(legend.position = "top")
+
+
+# Control the default amount of jitter. 
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, color = world))
+p + geom_jitter(position = position_jitter(width = 0.15)) +
+  labs(x = NULL) + coord_flip() + theme(legend.position = "top")
+
+```
+
+```{r}
+# Cleveland dotplot
+
+by_country <- organdata %>% group_by(consent_law, country) %>%
+    summarize(donors_mean= mean(donors, na.rm = TRUE),
+              donors_sd = sd(donors, na.rm = TRUE),
+              gdp_mean = mean(gdp, na.rm = TRUE),
+              health_mean = mean(health, na.rm = TRUE),
+              roads_mean = mean(roads, na.rm = TRUE),
+              cerebvas_mean = mean(cerebvas, na.rm = TRUE))
+
+by_country <- organdata %>%  group_by(consent_law, country) %>% 
+  summarize_if(is.numeric, funs(mean,sd), na.rm = TRUE) %>% 
+  ungroup()
+
+str(by_country)
+```
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = donors_mean, y = reorder(country, donors_mean), color = consent_law))
+p+geom_point(size = 3) +
+  labs(x = "Donor Procurement Rate",
+       y = "", color = "Consent Law") +
+  theme(legend.position = "top")
+
+
+p <-  ggplot(data = by_country,
+             mapping = aes(x = donors_mean,
+                           y = reorder(country, donors_mean)))
+
+p + geom_point(size = 3) +
+  facet_wrap(~ consent_law, scales = "free_y", ncol = 1) +
+  labs(x = "Donor Procurement Rate",
+       y = "")
+
+
+# Cleveland dotplots are generally preferred to bar or column charts. 
+# It includes some information about variance or error inthe plot. 
+p <- ggplot(data = by_country, mapping = aes(x = reorder(country, donors_mean), y = donors_mean))
+
+p + geom_pointrange(mapping = aes(ymin = donors_mean - donors_sd, 
+                                   ymax = donors_mean + donors_sd)) +
+    labs( x = "", y = "Donor Procurement Rate") + coord_flip()
+```
+
+## Plot text directly 
+
+
+```{r}
+
+
+p <- ggplot(data = by_country, 
+            mapping = aes(x = roads_mean, y = donors_mean))
+
+p + geom_point() + geom_text(mapping = aes(label = country))
+
+p <- ggplot(data = by_country, 
+            mapping = aes(x = roads_mean, y = donors_mean))
+
+p + geom_point() + geom_text(mapping = aes(label = country), hjust = 0)
+
+#  NO: Try different values to hjust to fine-tune your labels. This is not a robust approach.
+
+
+# ggreprel: provides two geoms [geom_text_repel() and geom_label_repel()] that can pick out labels much more flexibly than the default geom_text()
+
+library(ggrepel)
+
+
+
+data("elections_historic")
+
+str(elections_historic)
+elections_historic %>% select(2:7) 
+
+p_title <- "Presidential Elections: Popular & Electoral College Margins"
+p_subtitle <- "1824-2016"
+p_caption <- "Data for 2016 are provisional."
+x_label <- "Winner's share of Popular Vote"
+y_label <- "Winner's share of Electoral College Votes"
+
+p <- ggplot(elections_historic, 
+            aes(x = popular_pct, y = ec_pct, label = winner_label))
+
+
+p + geom_hline(yintercept = 0.5, size = 1.4, color = "gray50") +
+  geom_vline(xintercept = 0.5, size = 1.4, color = "gray80") +
+  geom_point() +
+  geom_text_repel() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = x_label, y = y_label, title  = p_title, subtitle = p_subtitle, caption = p_caption)
+
+```
+## Label outlines
+
+
+```{r}
+
+p <- ggplot(data = by_country,
+            mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() + 
+  geom_text_repel(data = subset(by_country, gdp_mean>25000),
+                  mapping = aes(label = country))
+
+p <- ggplot(data = by_country,
+            mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() +
+  geom_text_repel(data = subset(by_country, 
+                                gdp_mean > 25000 | health_mean < 1500| country == "Belgium"),
+              mapping = aes(label = country))
+
+
+
+# Alternatively, we can pick out specific points by creating a dummy variable in the data set/
+
+organdata$ind <- organdata$ccode %in% c("Ita", "Spa") & organdata$year > 1998
+
+p <- ggplot(data  = organdata,
+            mapping = aes(x = roads,
+                          y = donors, color = ind))
+
+p + geom_point() +
+  geom_text_repel(data = subset(organdata, ind),
+                  mapping = aes(label = ccode)) +
+  guides(label = FALSE, color =FALSE)
+```
+
+
+
+
+## Write and draw in the plot area
+```{r}
+# annotate
+
+p <- ggplot(data = organdata, mapping = aes(x = roads, y = donors)) 
+
+p + geom_point() + annotate(geom = "text", x = 91, 
+                            y = 33, label = "A surprisingly high \n recovery rate. ",
+                            hjust =0)
+
+
+p + geom_point() +
+  annotate(geom = "rect", xmin = 215, xmax = 155,
+           ymin = 30, ymax = 35, fill = "red", alpha = 0.2) +
+  annotate(geom = "text", x = 157, y =33, 
+           label = "A surprisingly high \n recovery rate. ",
+                            hjust =0)
+
+
+
+```
+
+## Understanding scales, guides, and themes
+ - Every aesthetic mapping has a scale, if you want to adjust how that scale is marked or graduated, then you use a scale_ function.
+ - Many scales come with a legend or key to help the reader interpret the graph. These are called *guides*. Make adjustments to them with the guides(function)/ 
+ - Graphs have other features not strickly connected to the logical structure of the data being displayed. e.g., background color, typeface used for labels, or the placement of the legend on the graph. use **theme()** function. 
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+p + geom_point()
+
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+
+p + geom_point() +
+  scale_x_log10() +
+  scale_y_continuous(breaks = c(5, 15, 25),
+                     labels = c("Five", "Fifteen", "Twenty Five"))
+
+
+p <- ggplot(data = organdata, 
+            mapping = aes(x = roads,
+                          y = donors,
+                           color = world))
+
+p + geom_point()+
+  scale_color_discrete(labels = 
+                         c("Coporatist", "Liberal", "Social Democratic", "Unclassified")) +
+  labs(x = "Road Deaths", y = " Donor Procurement", color = "Welfare State")
+
+
+
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+
+p + geom_point() +
+  labs(x = "Road Deaths",
+       y = "Donor Procurement") +
+  guides(color = FALSE)
+```
+
+# Draw maps
+
+```{r}
+
+
+election %>%  select(state, total_vote, 
+                     r_points, pct_trump, party, census) %>% 
+  sample_n(5)
+
+```
+```{r}
+party_colors <- c("#2E74C0", "#CB454A") 
+
+p0 <- ggplot(data = subset(election, st %nin% "DC"),
+             mapping = aes(x = r_points, 
+                           y = reorder(state, r_points),
+                           color = party))
+
+p1 <- p0 + geom_vline(xintercept = 0, color = "gray30") + geom_point(size = 2)
+
+p2 <- p1 + scale_color_manual(values = party_colors)
+
+
+p3 <- p2 + scale_x_continuous(breaks = c(-30, -20, -10, 0, 10, 20, 30, 40),
+                              labels = c("30\n (Clinton)", "20", "10", "0", "10", "20", "30", "40 \n (Trump)"))
+
+p3 + facet_wrap(~ census, ncol = 1, scales = "free_y") + guides(color = FALSE) + labs(x = "Point Margin", y = "") +
+  theme(axis.text = element_text(size = 8))
+```
+
+
+
+
+```{r}
+library(maps)
+library(hrbrthemes)
+
+theme_map <- function(base_size=9, base_family="") {
+
+      require(grid)
+    theme_bw(base_size=base_size, base_family=base_family) %+replace%
+        theme(axis.line=element_blank(),
+              axis.text=element_blank(),
+              axis.ticks=element_blank(),
+              axis.title=element_blank(),
+              panel.background=element_blank(),
+              panel.border=element_blank(),
+              panel.grid=element_blank(),
+              panel.spacing=unit(0, "lines"),
+              plot.background=element_blank(),
+              legend.justification = c(0,0),
+              legend.position = c(0,0)
+              )
+}
+
+us_states <- map_data("state")
+
+head(us_states)
+dim(us_states)
+
+
+p <- ggplot(data = us_states,
+            mapping = aes(x = long, y = lat, group = group))
+
+p + geom_polygon(fill = "white", color = "black")
+
+
+p <- ggplot(data = us_states, aes(x = long, y = lat, group = group, fill = region))
+
+p + geom_polygon(color = "gray90", size = 0.1) + guides(fill = FALSE)
+
+p + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 = 45) + guides(fill= FALSE)
+
+
+```
+
+```{r}
+election$region <- tolower(election$state)
+us_states_elec <- left_join(us_states, election)
+
+p <- ggplot(data = us_states_elec,
+            aes(x = long, y = lat,
+                group = group, fill = party) )
+
+p + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 =45)
+``
+```
+
+
+```{r}
+p0 <- ggplot(data = us_states_elec, mapping = aes(x = long, y = lat, group = group, fill = party))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_manual(values = party_colors)+ labs(title = "Election Results 2016", fill = NULL)
+
+p2
+
+p2 + theme_map()
+
+
+
+
+p0 <- ggplot(data = us_states_elec, 
+             mapping = aes(x = long, y = lat, group = group, fill = pct_trump))
+
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p1 + labs(title = "Trump vote") + theme_map() + labs(fill = "Percent")
+
+p2 <- p1 + scale_fill_gradient (low = "white", high = "#CB454A") +  labs(title = "Trump vote")
+
+p2 + theme_map() + labs(fill = "Percent")
+```
+
+```{r}
+
+p0 <- ggplot(data = us_states_elec, mapping = aes(x = long, y = lat, group = group, fill = d_points))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_gradient2() + labs(title = "Winning margins")
+
+p2 + theme_map() + labs(fill = "Percent")
+
+
+p3 <- p1 + scale_fill_gradient2(low = "red",
+                                mid = scales::muted("purple"), 
+                                high = "blue", breaks = c(-25, 0, 25,50, 75)) + labs(title = "Winning margins")
+
+
+p3 + theme_map() + labs(fill = "Percent")
+
+
+
+
+p0 <- ggplot(data = subset(us_states_elec, region %nin% "district of columbia" ),
+  aes(x = long, y = lat, group = group, fill = d_points))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_gradient2(low = "red", mid = scales::muted("purple"), high = "blue")
+# use muted() function from the scales library to tone down the color a little 
+
+p2 + theme_map() + labs(fill = "Percent")
+
+
+
+```
+
+# America's ur-choropleths
+```{r}
+# Producing county maps: 
+## the states of New Hampshire, Rohode Island, Massachussetts, and Connecticut are all smaller in area than any of the ten largest Western counties. Many or those counties have fewer than a hundred thousand people living in them. Some have fewer than then thousand inhabitants. 
+
+county_map %>% sample_n(5)
+
+county_data %>% 
+  select(id, name, state, pop_dens, pct_black) %>% 
+  sample_n(5)
+
+# Zero is the FIPS code for the entire United States.
+
+county_full <- left_join(county_map, county_data, by = "id")
+
+p <- ggplot(data = county_full, 
+            mapping = aes(x = long, y = lat,
+                          fill = pop_dens, 
+                          group = group))
+
+
+p1 <- p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+
+p1 # It chooses an unordered categorical layout. This is because the pop_dens variable is not ordered.
+
+# We can manually supply the right sort of scale using the scale_fill_brewer() function, together with a nigher set of labels.
+
+p2 <- p1 + scale_fill_brewer(palette="Blues",
+                             labels = c("0-10", "10-50", "50-100", "100-500",
+                                        "500-1,000", "1,000-5,000", ">5,000") )
+
+p2 + labs(fill = "Population per") + theme_map() +
+  guides(fill = guide_legend(nrow = 1)) +
+  theme(legend.position = "bottom")
+
+
+
+
+```
+
+```{r}
+p <- ggplot(data = county_full, mapping = aes(x = long, y = lat, fill =pct_black, group = group))
+
+# The use of coord_equal() makes sure that the relative scale of our map does not change even if we alter the overall dimension of the plot. 
+p1 <- p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+p2 <- p1 + scale_fill_brewer(palette = "Greens")
+
+p2 + labs(fill = "US Population, Percent Balck") + guides(fill = guide_legend(nrow = 1)) + theme_map() + theme(legend.position = "bottom")
+```
+
+```{r}
+
+
+orange_pal <- RColorBrewer::brewer.pal(n = 6, name = "Oranges")
+
+orange_pal
+
+orange_rev <- rev(orange_pal)
+
+orange_rev
+
+gun_p <- ggplot(data = county_full,
+                mapping = aes(x = long, y = lat, 
+                          fill = su_gun6, 
+                          group = group))
+
+gun_p1 <- gun_p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+gun_p2 <- gun_p1 + scale_fill_manual(values = orange_pal)
+
+
+
+gun_p2 + labs(title = "Gun-Related Suicides, 1999-2015", 
+               fill = "Rate per 100, 000 pop.") +theme_map() + theme(legend.position = "bottom")
+
+
+pop_p <- ggplot(data = county_full, mapping = aes(x = long, y = lat,
+                                                  fill = pop_dens6, 
+                                                  group = group))
+
+pop_p1 <- pop_p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+pop_p2 <- pop_p1 + scale_fill_manual(values = orange_rev)
+
+pop_p2 + labs(title = "Reverse-coded Population Density",
+              fill = "People per square mile") +
+    theme_map() + theme(legend.position = "bottom")
+
+
+# Normal standardization: number of interest/county's pop
+# Limits: The denominaotr starts to be exrepssed more and more in the standardized measure,
+# When the event of interest is not very common, and there is very wide variation
+
+
+# The data is subject to reporting constraints connected to population size. 
+# Eg., if there are fewer than ten events per year for a cause of death, the CDC will not report them at the county lvel
+# Because it might be possible to identify particular deceased individuals.
+# Assigning data like this to bins creats a threshold problem for choropleth maps.
+
+
+# WARNING: Do not arbitrarily code suppressed variable to zero.
+# Drop or use count model is better. 
+
+```
+
+# Statebins
+```{r}
+
+
+library(statebins)
+
+
+
+
+statebins_continuous(state_data = election, state_col = "state",
+                     text_color = "white", value_col = "pct_trump",
+                     brewer_pal="Reds", font_size = 3,
+                     legend_title="Percent Trump")
+
+statebins_continuous(state_data = subset(election, st %nin% "DC"),
+                     state_col = "state",
+                     text_color = "black", value_col = "pct_clinton",
+                     brewer_pal="Blues", font_size = 3,
+                     legend_title="Percent Clinton")
+
+
+
+election <- election %>% mutate(color = recode(party, Republican = "darkred",
+                                               Democrat = "royalblue"))
+
+statebins_manual(state_data = election, state_col = "st",
+                 color_col = "color", text_color = "white",
+                 font_size = 3, legend_title="Winner",
+                 labels=c("Trump", "Clinton"), legend_position = "right")
+
+statebins(state_data = election,          
+          state_col = "state", value_col = "pct_trump",
+          text_color = "white", breaks = 4,
+          labels = c("4-21", "21-37", "37-53", "53-70"),
+          brewer_pal="Reds", font_size = 3, legend_title="Percent Trump")
+
+```
+# 7.4 Small-multiple maps
+
+
+```{r}
+data(opiates)
+
+str(opiates)
+
+opiates$region <- tolower(opiates$state)
+opiates_map <- left_join(us_states, opiates)
+
+# The data includes the Year variable, we are now in a position to make a faceted small- multiple with one map for each yearin the data. 
+
+library(viridis)
+
+p0 <- ggplot(data = subset(opiates_map, year>1999), mapping = aes(x = long, y = lat,
+                                                                  group = group, fill = adjusted))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.05) + coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_viridis_c(option = "plasma")
+
+p2 + theme_map() + facet_wrap(~ year, ncol = 3) + theme(legend.position = "bottom", strip.background = element_blank()) +
+  labs(fill = "Dearth rate per 100,000 population", title = "Opiate Related Deaths by State, 2000-2014")
+
+#p2 + theme_map() + facet_wrap(~ )
+
+```
+
+# Is your data really spation?
+```{r}
+
+p <- ggplot(data = opiates,
+            mapping = aes(x = year, y = adjusted,
+                          group = state))
+p + geom_line(color = "gray70")
+
+
+p0 <- ggplot(data = drop_na(opiates, division_name),
+             mapping = aes(x = year, y = adjusted))
+
+p1 <- p0 + geom_line(color = "gray70", mapping = aes(group = state))
+
+
+p2 <- p1 + geom_smooth(mapping = aes(group = division_name), se = FALSE)
+
+p2
+
+p3 <- p2 + geom_text_repel(data = subset(opiates, year == max(year) & abbr != "DC"), 
+                           mapping = aes(x = year, y = adjusted, label = abbr),
+                           size = 1.8, segment.color = NA, nudge_x = 30) +
+  coord_cartesian(c(min(opiates$year),
+                    max(opiates$year)))
+
+
+p3 + labs(x = "", y = "Rate per 100,000 population", title = "State-Level Opiate Death Rates by Census Division, 1999-2014") +
+  facet_wrap(~ reorder(division_name, -adjusted, na.rm = TRUE), nrow = 3)
+```
+
