@@ -22,6 +22,9 @@ library(gapminder)
 library(ggplot2)
 library(socviz)
 library(tidyverse)
+library(ggrepel)
+library(dichromat)
+library(RColorBrewer)
 
 ```
 ```{r}
@@ -462,7 +465,6 @@ p + geom_point() + geom_text(mapping = aes(label = country), hjust = 0)
 
 # ggreprel: provides two geoms [geom_text_repel() and geom_label_repel()] that can pick out labels much more flexibly than the default geom_text()
 
-library(ggrepel)
 
 
 
@@ -949,5 +951,140 @@ p3 <- p2 + geom_text_repel(data = subset(opiates, year == max(year) & abbr != "D
 
 p3 + labs(x = "", y = "Rate per 100,000 population", title = "State-Level Opiate Death Rates by Census Division, 1999-2014") +
   facet_wrap(~ reorder(division_name, -adjusted, na.rm = TRUE), nrow = 3)
+```
+
+# Refine your plots
+
+```{r}
+data(asasec)
+head(asasec)
+
+```
+
+```{r}
+p <- ggplot(data = subset(asasec, Year == 2014),
+            mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point() + geom_smooth()
+
+
+
+p <- ggplot(data = subset(asasec, Year == 2014),
+            mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point(mapping = aes(color = Journal)) + geom_smooth(method = "lm")
+
+
+p0 <- ggplot(data = subset(asasec, Year == 2014),
+            mapping = aes(x = Members, y = Revenues, label = Sname))
+
+
+p1 <- p0 + geom_smooth(method = "lm", se = FALSE, color = "gray80") + geom_point(mapping = aes(color = Journal))
+
+
+p2 <- p1 + geom_text_repel(data = subset(asasec, Year == 2014 & Revenues > 7000), size = 2)
+
+p3 <- p2 + labs(x="Membership",
+        y="Revenues",
+        color = "Section has own Journal",
+        title = "ASA Sections",
+        subtitle = "2014 Calendar year.",
+        caption = "Source: ASA annual report.")
+
+
+p4 <- p3 + scale_y_continuous(labels = scales::dollar) + theme(legend.position = "bottom")
+
+
+p4
+```
+
+## Use color to your advantage
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads, y = donors, color = world))
+p + geom_point(size = 2) + scale_color_brewer(palette = "Set2") +
+    theme(legend.position = "top")
+
+p + geom_point(size = 2) + scale_color_brewer(palette = "Pastel2") +
+        theme(legend.position = "top")
+
+p + geom_point(size = 2) + scale_color_brewer(palette = "Dark2") +
+    theme(legend.position = "top")
+```
+```{r}
+demo('colors')
+cb_palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+p4 + scale_color_manual(values = cb_palette) 
+
+install.packages("dichromat")
+
+
+Default <- brewer.pal(5, "Set2") # get fiver colors from ggplot's default palette
+
+
+types <- c("deutan", "protan", "tritan")
+names(types) <- c("Deuteronopia", "Protanopia", "Tritanopia")
+
+color_table <- types %>%
+    purrr::map(~ dichromat(Default, .x)) %>%
+    as_tibble() %>%
+    add_column(Default, .before = TRUE)
+
+color_comp(color_table)
+
+```
+## 8.2 Layer color and text together
+
+```{r}
+#Pick out or highlight some aspect of our data. 
+
+party_colors <- c("#2E74C0", "#CB454A")
+
+p0 <- ggplot(data = subset(county_data,
+                           flipped == "No"),
+             mapping = aes(x = pop,
+                           y = black/100))
+
+p1 <- p0 + geom_point(alpha = 0.15, color = "gray50") +
+    scale_x_log10(labels=scales::comma) 
+
+p2 <- p1 + geom_point(data = subset(county_data,
+                                    flipped == "Yes"),
+                      mapping = aes(x = pop, y = black/100,
+                                    color = partywinner16)) +
+    scale_color_manual(values = party_colors)
+
+p2
+
+p3 <- p2 + scale_y_continuous(labels=scales::percent) +
+    labs(color = "County flipped to ... ",
+         x = "County Population (log scale)",
+         y = "Percent Black Population",
+         title = "Flipped counties, 2016",
+         caption = "Counties in gray did not flip.")
+
+p3
+
+p4 <- p3 + geom_text_repel(data = subset(county_data,
+                                      flipped == "Yes" &
+                                      black  > 25),
+                           mapping = aes(x = pop,
+                                   y = black/100,
+                                   label = state), size = 3)
+
+p4
+p4 + theme_minimal() +
+    theme(legend.position="top")
+
+
+# not just content of the plot but also the implicit or explicit structure that it has. 
+# 1. you will be able to see the mappings that form the basis of the plot, picking out which variables are mapped to x and y, and which to color, fill, shape, label, and so on. What geoms were used to produce them? 
+# 2. How have the scales been adjusted? Are the axes transformed? Are the fill and color legends combined? 
+# 3. Structure of layers? 
+
+
 ```
 
