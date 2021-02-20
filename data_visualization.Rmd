@@ -938,7 +938,7 @@ p1 <- p0 + geom_line(color = "gray70", mapping = aes(group = state))
 
 p2 <- p1 + geom_smooth(mapping = aes(group = division_name), se = FALSE)
 
-p2
+
 
 p3 <- p2 + geom_text_repel(data = subset(opiates, year == max(year) & abbr != "DC"), 
                            mapping = aes(x = year, y = adjusted, label = abbr),
